@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"html/template"
-	"log"
 	"net/http"
 
 	"github.com/gritsulyak/nanoforum-go/internal/auth"
@@ -10,19 +9,21 @@ import (
 	"github.com/gritsulyak/nanoforum-go/internal/repository"
 )
 
+type Handler struct {
+	users    *repository.UserRepo
+	posts    *repository.PostRepo
+	tmpl     *template.Template
+	basePath string
+}
+
+func New(users *repository.UserRepo, posts *repository.PostRepo, tmpl *template.Template, basePath string) *Handler {
+	return &Handler{users: users, posts: posts, tmpl: tmpl, basePath: basePath}
+}
+
 type PageData struct {
 	CurrentUser string
 	Posts       []models.Post
-}
-
-type Handler struct {
-	users *repository.UserRepo
-	posts *repository.PostRepo
-	tmpl  *template.Template
-}
-
-func New(users *repository.UserRepo, posts *repository.PostRepo, tmpl *template.Template) *Handler {
-	return &Handler{users: users, posts: posts, tmpl: tmpl}
+	BasePath    string
 }
 
 func (h *Handler) Forum(w http.ResponseWriter, r *http.Request) {
@@ -30,33 +31,33 @@ func (h *Handler) Forum(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == http.MethodPost {
 		if username == "" {
-			http.Error(w, "Only authorized users can write", http.StatusUnauthorized)
+			http.Error(w, "auth required", http.StatusUnauthorized)
 			return
 		}
 		content := r.FormValue("content")
 		if content != "" {
 			if err := h.posts.Create(username, content); err != nil {
-				http.Error(w, "Error saving message", http.StatusInternalServerError)
+				http.Error(w, "can't create post", http.StatusInternalServerError)
 				return
 			}
 		}
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		http.Redirect(w, r, h.basePath+"/", http.StatusSeeOther)
 		return
 	}
 
 	posts, err := h.posts.List()
 	if err != nil {
-		http.Error(w, "Error loading messages", http.StatusInternalServerError)
+		http.Error(w, "can't load posts", http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_ = h.tmpl.Execute(w, PageData{CurrentUser: username, Posts: posts})
+	_ = h.tmpl.Execute(w, PageData{CurrentUser: username, Posts: posts, BasePath: h.basePath})
 }
 
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		http.Redirect(w, r, h.basePath+"/", http.StatusSeeOther)
 		return
 	}
 
@@ -65,22 +66,20 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 
 	hash, err := h.users.GetPasswordHash(username)
 	if err != nil {
-		log.Printf("Error retrieving password hash for user %s: %v", username, err)
-		http.Error(w, "Invalid username or password", http.StatusUnauthorized)
+		http.Error(w, "invalid username or password", http.StatusUnauthorized)
 		return
 	}
 
 	if err := auth.CheckPassword(hash, password); err != nil {
-		log.Printf("Password check failed for user %s: %v", username, err)
-		http.Error(w, "Invalid username or password", http.StatusUnauthorized)
+		http.Error(w, "invalid username or password", http.StatusUnauthorized)
 		return
 	}
 
 	auth.SetSession(w, username)
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.Redirect(w, r, h.basePath+"/", http.StatusSeeOther)
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	auth.ClearSession(w)
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.Redirect(w, r, h.basePath+"/", http.StatusSeeOther)
 }

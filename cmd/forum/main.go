@@ -26,12 +26,19 @@ func main() {
 	posts := repository.NewPostRepo(conn)
 
 	tmpl := template.Must(template.ParseFiles("web/templates/index.html"))
-	h := handlers.New(users, posts, tmpl)
+	basePath := config.BasePath()
+	h := handlers.New(users, posts, tmpl, basePath)
 
-	http.HandleFunc("/", h.Forum)
-	http.HandleFunc("/login", h.Login)
-	http.HandleFunc("/logout", h.Logout)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", h.Forum)
+	mux.HandleFunc("/login", h.Login)
+	mux.HandleFunc("/logout", h.Logout)
 
-	log.Println("nanoforum running on http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	var rootHandler http.Handler = mux
+	if basePath != "" {
+		rootHandler = http.StripPrefix(basePath, mux)
+	}
+
+	log.Printf("Forum run: http://localhost:8080%s", basePath)
+	log.Fatal(http.ListenAndServe(":8080", rootHandler))
 }

@@ -1,6 +1,9 @@
 package config
 
-import "os"
+import (
+	"os"
+	"strings"
+)
 
 const defaultDBPath = "./forum.db"
 
@@ -17,4 +20,15 @@ func DBPath() string {
 		return v
 	}
 	return defaultDBPath
+}
+
+// BasePath returns the base path for the forum, which can be set via the environment variable BASE_PATH.
+// This is useful when the forum is running behind a reverse proxy (e.g., "/forum").
+// By default, it returns an empty string, meaning the forum runs at the root of the domain.
+func BasePath() string {
+	v, ok := os.LookupEnv("BASE_PATH")
+	if !ok {
+		return ""
+	}
+	return "/" + strings.Trim(v, "/")
 }

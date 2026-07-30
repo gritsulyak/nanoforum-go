@@ -19,17 +19,17 @@
     <!-- Проверка авторизации через структуру PageData -->
     {{if .CurrentUser}}
         <div class="auth-box">
-            You are: <strong>{{.CurrentUser}}</strong> | <a href="/logout">Logout</a>
+            Вы вошли как: <strong>{{.CurrentUser}}</strong> | <a href="{{.BasePath}}/logout">Выйти</a>
         </div>
 
-        <form method="POST" action="/">
-            <textarea name="content" placeholder="Post your message..." required></textarea>
-            <button type="submit">Publish</button>
+        <form method="POST" action="{{.BasePath}}/">
+            <textarea name="content" placeholder="Напишите что-нибудь на форуме..." required></textarea>
+            <button type="submit">Опубликовать</button>
         </form>
     {{else}}
         <div class="auth-box">
             <p>You must be logged in to post messages:</p>
-            <form method="POST" action="/login" style="border:none; padding:0; margin:0;">
+            <form method="POST" action="{{.BasePath}}/login" style="border:none; padding:0; margin:0;">
                 <div class="flex">
                     <input type="text" name="username" placeholder="Username" required>
                     <input type="password" name="password" placeholder="Password" required>

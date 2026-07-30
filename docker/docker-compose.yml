@@ -13,6 +13,7 @@ services:
       - forum-data:/app/data
     environment:
       - DB_PATH=/app/data/forum.db
+      - BASE_PATH=/forum
 
   createuser:
     build:
