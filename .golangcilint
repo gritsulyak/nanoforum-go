@@ -1,0 +1,26 @@
+version: "2"
+
+linters:
+  default: standard
+  enable:
+    - bodyclose      # незакрытые HTTP response body
+    - contextcheck    # неправильное использование context.Context
+    - errname         # именование типов ошибок (ErrFoo)
+    - errorlint       # обёрнутые ошибки ломают errors.Is/As
+    - gosec           # проблемы безопасности (SQL-инъекции, слабая криптография)
+    - noctx           # HTTP-запросы без context
+    - unconvert       # ненужные приведения типов
+    - unparam         # неиспользуемые параметры функций
+  settings:
+    errcheck:
+      check-type-assertions: true
+    gosec:
+      excludes:
+        - G404  # math/rand допустим для не-криптографических нужд
+  exclusions:
+    presets:
+      - comments
+      - common-false-positives
+    rules:
+      - linters: [gosec, noctx]
+        path: _test\.go

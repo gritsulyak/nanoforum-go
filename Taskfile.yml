@@ -1,0 +1,74 @@
+version: '3'
+
+vars:
+  BIN_DIR: ./bin
+  COMPOSE_FILE: docker/docker-compose.yml
+
+tasks:
+  vet:
+    desc: Run go vet
+    cmds:
+      - go vet ./...
+
+  lint:
+    desc: Run golangci-lint
+    cmds:
+      - golangci-lint run ./...
+
+  check:
+    desc: vet + lint
+    cmds:
+      - task: vet
+      - task: lint
+
+  docker-build:
+    desc: Build Docker image for the forum
+    cmds:
+      - docker compose -f {{.COMPOSE_FILE}} build
+
+  docker-up:
+    desc: Run forum in Docker (port 8084)
+    cmds:
+      - docker compose -f {{.COMPOSE_FILE}} up -d
+
+  docker-down:
+    desc: Stop and remove forum container
+    cmds:
+      - docker compose -f {{.COMPOSE_FILE}} down
+
+  docker-logs:
+    desc: Logs of the forum container
+    cmds:
+      - docker compose -f {{.COMPOSE_FILE}} logs -f forum
+
+  docker-createuser:
+    desc: Create user inside the container (interactive)
+    cmds:
+      - docker compose -f {{.COMPOSE_FILE}} --profile tools run --rm createuser
+
+  db-backup:
+    desc: Make backup of forum.db from the container
+    cmds:
+      - bash docker/scripts/backup.sh nanoforum
+
+  db-restore:
+    desc: 'Restore DB: task db-restore -- <path_to_backup>'
+    cmds:
+      - bash docker/scripts/restore.sh nanoforum {{.CLI_ARGS}}
+
+   docker-publish:
+    desc: Собрать и запушить образ в ghcr.io вручную
+    cmds:
+      - docker build -f docker/Dockerfile -t ghcr.io/gritsulyak/nanoforum-go:latest .
+      - docker push ghcr.io/gritsulyak/nanoforum-go:latest
+
+  prod-up:
+    desc: Запустить прод-версию из ghcr.io образа
+    cmds:
+      - docker compose -f docker/docker-compose-prod.yml pull
+      - docker compose -f docker/docker-compose-prod.yml up -d
+
+  prod-down:
+    desc: Остановить прод-версию
+    cmds:
+      - docker compose -f docker/docker-compose-prod.yml down

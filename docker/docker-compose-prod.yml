@@ -1,0 +1,28 @@
+version: '3.9'
+
+services:
+  forum:
+    image: ghcr.io/gritsulyak/nanoforum-go:latest
+    container_name: nanoforum
+    restart: unless-stopped
+    ports:
+      - "8084:8080"
+    volumes:
+      - forum-data:/app/data
+    environment:
+      - DB_PATH=/app/data/forum.db
+
+  createuser:
+    image: ghcr.io/gritsulyak/nanoforum-go:latest
+    entrypoint: ["./createuser"]
+    profiles: ["tools"]
+    volumes:
+      - forum-data:/app/data
+    environment:
+      - DB_PATH=/app/data/forum.db
+    stdin_open: true
+    tty: true
+
+volumes:
+  forum-data:
+    driver: local

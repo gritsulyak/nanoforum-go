@@ -1,0 +1,27 @@
+# ---------- builder ----------
+FROM golang:1.25-alpine AS builder
+
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+RUN CGO_ENABLED=0 go build -o /out/forum ./cmd/forum
+RUN CGO_ENABLED=0 go build -o /out/createuser ./cmd/createuser
+
+# ---------- runtime ----------
+FROM alpine:3.20
+
+RUN apk add --no-cache sqlite ca-certificates tzdata
+
+WORKDIR /app
+COPY --from=builder /out/forum ./forum
+COPY --from=builder /out/createuser ./createuser
+COPY web/templates ./web/templates
+
+RUN mkdir -p /app/data
+VOLUME ["/app/data"]
+
+EXPOSE 8080
+
+ENTRYPOINT ["./forum"]

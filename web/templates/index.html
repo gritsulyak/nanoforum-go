@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Мини-Форум на Go с авторизацией</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 0 20px; background: #f9f9f9; }
+        .auth-box, form { background: white; padding: 15px; margin-bottom: 20px; border-radius: 4px; border: 1px solid #ddd; }
+        textarea { width: 100%; height: 60px; margin-bottom: 10px; padding: 8px; box-sizing: border-box; }
+        .post { background: white; padding: 15px; margin-bottom: 10px; border-radius: 4px; border: 1px solid #ddd; }
+        .user-tag { color: #0066cc; font-weight: bold; }
+        .flex { display: flex; gap: 10px; margin-bottom: 10px; }
+        input { padding: 6px; width: 100%; }
+    </style>
+</head>
+<body>
+    <h2>nano forum</h2>
+    
+    <!-- Проверка авторизации через структуру PageData -->
+    {{if .CurrentUser}}
+        <div class="auth-box">
+            You are: <strong>{{.CurrentUser}}</strong> | <a href="/logout">Logout</a>
+        </div>
+
+        <form method="POST" action="/">
+            <textarea name="content" placeholder="Post your message..." required></textarea>
+            <button type="submit">Publish</button>
+        </form>
+    {{else}}
+        <div class="auth-box">
+            <p>You must be logged in to post messages:</p>
+            <form method="POST" action="/login" style="border:none; padding:0; margin:0;">
+                <div class="flex">
+                    <input type="text" name="username" placeholder="Username" required>
+                    <input type="password" name="password" placeholder="Password" required>
+                </div>
+                <button type="submit">Login</button>
+            </form>
+        </div>
+    {{end}}
+
+    <div id="posts">
+        <h3>Posts</h3>
+        {{range .Posts}}
+        <div class="post">
+            <span class="user-tag">@{{.Username}}</span> (ID: {{.ID}}):
+            <p style="margin: 5px 0 0 0;">{{.Content}}</p>
+        </div>
+        {{else}}
+        <p>There are no messages yet.</p>
+        {{end}}
+    </div>
+</body>
+</html>
