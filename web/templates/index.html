@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Мини-Форум на Go с авторизацией</title>
+    <title>nano forum</title>
     <style>
         body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 0 20px; background: #f9f9f9; }
         .auth-box, form { background: white; padding: 15px; margin-bottom: 20px; border-radius: 4px; border: 1px solid #ddd; }
@@ -14,8 +14,8 @@
     </style>
 </head>
 <body>
-    <h2>nano forum</h2>
-    
+    <h2>Nano forum <a href="https://github.com/gritsulyak/nanoforum-go" target="_blank">(github.com/gritsulyak/nanoforum-go)</a></h2>
+
     <!-- Проверка авторизации через структуру PageData -->
     {{if .CurrentUser}}
         <div class="auth-box">
@@ -36,6 +36,7 @@
                 </div>
                 <button type="submit">Login</button>
             </form>
+            <p>Registration is closed. Ask owner to provide you login credentials.</p>
         </div>
     {{end}}
 

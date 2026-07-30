@@ -56,7 +56,7 @@ tasks:
     cmds:
       - bash docker/scripts/restore.sh nanoforum {{.CLI_ARGS}}
 
-   docker-publish:
+  docker-publish:
     desc: Собрать и запушить образ в ghcr.io вручную
     cmds:
       - docker build -f docker/Dockerfile -t ghcr.io/gritsulyak/nanoforum-go:latest .

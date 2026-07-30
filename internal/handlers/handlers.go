@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"html/template"
+	"log"
 	"net/http"
 
 	"github.com/gritsulyak/nanoforum-go/internal/auth"
@@ -29,13 +30,13 @@ func (h *Handler) Forum(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == http.MethodPost {
 		if username == "" {
-			http.Error(w, "Только авторизованные пользователи могут писать", http.StatusUnauthorized)
+			http.Error(w, "Only authorized users can write", http.StatusUnauthorized)
 			return
 		}
 		content := r.FormValue("content")
 		if content != "" {
 			if err := h.posts.Create(username, content); err != nil {
-				http.Error(w, "Не удалось сохранить сообщение", http.StatusInternalServerError)
+				http.Error(w, "Error saving message", http.StatusInternalServerError)
 				return
 			}
 		}
@@ -45,7 +46,7 @@ func (h *Handler) Forum(w http.ResponseWriter, r *http.Request) {
 
 	posts, err := h.posts.List()
 	if err != nil {
-		http.Error(w, "Ошибка загрузки сообщений", http.StatusInternalServerError)
+		http.Error(w, "Error loading messages", http.StatusInternalServerError)
 		return
 	}
 
@@ -64,12 +65,14 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 
 	hash, err := h.users.GetPasswordHash(username)
 	if err != nil {
-		http.Error(w, "Неверный логин или пароль", http.StatusUnauthorized)
+		log.Printf("Error retrieving password hash for user %s: %v", username, err)
+		http.Error(w, "Invalid username or password", http.StatusUnauthorized)
 		return
 	}
 
 	if err := auth.CheckPassword(hash, password); err != nil {
-		http.Error(w, "Неверный логин или пароль", http.StatusUnauthorized)
+		log.Printf("Password check failed for user %s: %v", username, err)
+		http.Error(w, "Invalid username or password", http.StatusUnauthorized)
 		return
 	}
 
