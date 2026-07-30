@@ -12,6 +12,7 @@ A minimal forum application in Go with bcrypt-based authentication and SQLite st
 - Backup/restore scripts for the database
 
 ## Project structure
+```
 nanoforum-go/
 ├── cmd/
 │ ├── forum/ # main web server
@@ -37,7 +38,7 @@ nanoforum-go/
 ├── Taskfile.yml
 ├── .golangci.yml
 └── go.mod
-
+```
 
 ## Requirements
 

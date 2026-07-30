@@ -12,7 +12,7 @@
 - Скрипты бэкапа/восстановления базы
 
 ## Структура проекта
-
+```
 nanoforum-go/
 ├── cmd/
 │ ├── forum/ # main web server
@@ -38,7 +38,7 @@ nanoforum-go/
 ├── Taskfile.yml
 ├── .golangci.yml
 └── go.mod
-
+```
 
 ## Требования
 
