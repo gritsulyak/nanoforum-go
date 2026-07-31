@@ -26,7 +26,7 @@ type PostListResult struct {
 // We fetch limit + 1 to efficiently determine if a next page exists.
 func (r *PostRepo) List(limit, offset int) (PostListResult, error) {
 	queryLimit := limit + 1
-	rows, err := r.db.Query("SELECT id, username, content FROM posts ORDER BY id DESC LIMIT ? OFFSET ?", queryLimit, offset)
+	rows, err := r.db.Query("SELECT id, username, content, created_at FROM posts ORDER BY id DESC LIMIT ? OFFSET ?", queryLimit, offset)
 	if err != nil {
 		return PostListResult{}, err
 	}
@@ -39,7 +39,7 @@ func (r *PostRepo) List(limit, offset int) (PostListResult, error) {
 	var posts []models.Post
 	for rows.Next() {
 		var p models.Post
-		if err := rows.Scan(&p.ID, &p.Username, &p.Content); err != nil {
+		if err := rows.Scan(&p.ID, &p.Username, &p.Content, &p.CreatedAt); err != nil {
 			return PostListResult{}, err
 		}
 		posts = append(posts, p)
