@@ -68,6 +68,25 @@
         {{else}}
         <p data-i18n="no_messages">Пока нет сообщений.</p>
         {{end}}
+
+        <!-- Pagination Controls -->
+        {{if or .HasPrev .HasNext}}
+        <div style="display: flex; justify-content: space-between; margin-top: 20px; padding-top: 10px; border-top: 1px solid #eee;">
+            {{if .HasPrev}}
+            <a href="{{.BasePath}}/?page={{.PrevPage}}" style="text-decoration: none; color: #0066cc; font-size: 0.9em;">
+                &lt;&lt; <span data-i18n="prev">пред.</span>
+            </a>
+            {{else}}
+            <span></span> <!-- Spacer to push "next" to the right -->
+            {{end}}
+
+            {{if .HasNext}}
+            <a href="{{.BasePath}}/?page={{.NextPage}}" style="text-decoration: none; color: #0066cc; font-size: 0.9em;">
+                <span data-i18n="next">след.</span> &gt;&gt;
+            </a>
+            {{end}}
+        </div>
+        {{end}}
     </div>
     
     <a href="https://github.com/gritsulyak/nanoforum-go" target="_blank" class="footer-link" data-i18n="github">github:nanoforum-go</a>
@@ -88,6 +107,8 @@
                 reg_closed: "Регистрация закрыта. Попросите владельца дать вам доступ.",
                 posts: "Сообщения",
                 no_messages: "Пока нет сообщений.",
+                prev: "пред.",
+                next: "след.",
                 github: "github:nanoforum-go"
             },
             en: {
@@ -103,10 +124,12 @@
                 reg_closed: "Registration is closed. Ask the owner to provide you access.",
                 posts: "Posts",
                 no_messages: "There are no messages yet.",
+                prev: "prev",
+                next: "next",
                 github: "github:nanoforum-go"
             }
         };
-
+        
         function setLang(lang) {
             // Сохраняем выбор пользователя
             localStorage.setItem('nanoforum_lang', lang);

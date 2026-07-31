@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -31,4 +32,18 @@ func BasePath() string {
 		return ""
 	}
 	return "/" + strings.Trim(v, "/")
+}
+
+// PageSize returns the number of posts to display per page.
+// It reads from the PAGE_SIZE environment variable, defaulting to 10.
+func PageSize() int {
+	v, ok := os.LookupEnv("PAGE_SIZE")
+	if !ok {
+		return 10
+	}
+	size, err := strconv.Atoi(v)
+	if err != nil || size <= 0 {
+		return 10 // Fallback to default if invalid
+	}
+	return size
 }

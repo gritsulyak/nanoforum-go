@@ -16,10 +16,19 @@ func (r *PostRepo) Create(username, content string) error {
 	return err
 }
 
-func (r *PostRepo) List() ([]models.Post, error) {
-	rows, err := r.db.Query("SELECT id, username, content FROM posts ORDER BY id DESC")
+// PostListResult holds the posts and a flag indicating if more posts exist.
+type PostListResult struct {
+	Posts   []models.Post
+	HasNext bool
+}
+
+// List retrieves posts with pagination.
+// We fetch limit + 1 to efficiently determine if a next page exists.
+func (r *PostRepo) List(limit, offset int) (PostListResult, error) {
+	queryLimit := limit + 1
+	rows, err := r.db.Query("SELECT id, username, content FROM posts ORDER BY id DESC LIMIT ? OFFSET ?", queryLimit, offset)
 	if err != nil {
-		return nil, err
+		return PostListResult{}, err
 	}
 	defer func() {
 		if err := rows.Close(); err != nil {
@@ -31,9 +40,16 @@ func (r *PostRepo) List() ([]models.Post, error) {
 	for rows.Next() {
 		var p models.Post
 		if err := rows.Scan(&p.ID, &p.Username, &p.Content); err != nil {
-			return nil, err
+			return PostListResult{}, err
 		}
 		posts = append(posts, p)
 	}
-	return posts, rows.Err()
+
+	hasNext := false
+	if len(posts) > limit {
+		hasNext = true
+		posts = posts[:limit] // Drop the extra item used for checking
+	}
+
+	return PostListResult{Posts: posts, HasNext: hasNext}, rows.Err()
 }
