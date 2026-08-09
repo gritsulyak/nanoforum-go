@@ -4,7 +4,7 @@ Single-module Go app (`github.com/gritsulyak/nanoforum-go`, go 1.25): a minimal 
 
 ## Build / verify
 
-- CI gate is `go vet ./...` + `golangci-lint run ./...` (equivalent to `task check`). There are **no tests** in the repo and CI has no test step; if you add tests, run `go test ./...`.
+- CI gate is `go vet ./...` + `golangci-lint run ./...` (equivalent to `task check`). Tests cover `internal/` at 100% (`go test -cover ./internal/...`); run `go test ./...`.
 - `golangci-lint` v2 is required (`golangci-lint version`).
 - README's `task run` and `task createuser` do **not exist** in `Taskfile.yml`. Real commands: `go run ./cmd/forum` (serves :8080) and `go run ./cmd/createuser`.
 - The server loads `web/templates/index.html` via a relative path, so `go run ./cmd/forum` must be run from the repo root.

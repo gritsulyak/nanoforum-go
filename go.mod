@@ -3,6 +3,7 @@ module github.com/gritsulyak/nanoforum-go
 go 1.25.12
 
 require (
+	github.com/DATA-DOG/go-sqlmock v1.5.2
 	golang.org/x/crypto v0.54.0
 	modernc.org/sqlite v1.55.0
 )

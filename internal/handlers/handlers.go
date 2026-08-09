@@ -11,14 +11,23 @@ import (
 	"github.com/gritsulyak/nanoforum-go/internal/repository"
 )
 
+type UserStore interface {
+	GetPasswordHash(username string) (string, error)
+}
+
+type PostStore interface {
+	Create(username, content string) error
+	List(limit, offset int) (repository.PostListResult, error)
+}
+
 type Handler struct {
-	users    *repository.UserRepo
-	posts    *repository.PostRepo
+	users    UserStore
+	posts    PostStore
 	tmpl     *template.Template
 	basePath string
 }
 
-func New(users *repository.UserRepo, posts *repository.PostRepo, tmpl *template.Template, basePath string) *Handler {
+func New(users UserStore, posts PostStore, tmpl *template.Template, basePath string) *Handler {
 	return &Handler{users: users, posts: posts, tmpl: tmpl, basePath: basePath}
 }
 

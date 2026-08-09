@@ -6,8 +6,10 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+var open = sql.Open
+
 func New(path string) (*sql.DB, error) {
-	conn, err := sql.Open("sqlite", path)
+	conn, err := open("sqlite", path)
 	if err != nil {
 		return nil, err
 	}
