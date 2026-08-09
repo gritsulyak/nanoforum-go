@@ -2,6 +2,8 @@
 
 A minimal forum application in Go with bcrypt-based authentication and SQLite storage. No external database server required.
 
+This project was built using a combination of opencode AI assistance, human development, and experimental chat interactions - serving as both an experiment in AI-assisted development and an optimized tool for small sites.
+
 ## Features
 
 - User registration via CLI script
