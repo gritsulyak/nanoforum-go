@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 
 	_ "modernc.org/sqlite"
@@ -20,14 +21,15 @@ func New(path string) (*sql.DB, error) {
 }
 
 func migrate(conn *sql.DB) error {
-	if _, err := conn.Exec(`CREATE TABLE IF NOT EXISTS users (
+	ctx := context.Background()
+	if _, err := conn.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS users (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		username TEXT UNIQUE NOT NULL,
 		password_hash TEXT NOT NULL
 	)`); err != nil {
 		return err
 	}
-	_, err := conn.Exec(`CREATE TABLE IF NOT EXISTS posts (
+	_, err := conn.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS posts (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		username TEXT NOT NULL,
 		content TEXT NOT NULL,

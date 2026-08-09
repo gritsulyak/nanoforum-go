@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"html/template"
 	"net/http"
 	"strconv"
@@ -12,12 +13,12 @@ import (
 )
 
 type UserStore interface {
-	GetPasswordHash(username string) (string, error)
+	GetPasswordHash(ctx context.Context, username string) (string, error)
 }
 
 type PostStore interface {
-	Create(username, content string) error
-	List(limit, offset int) (repository.PostListResult, error)
+	Create(ctx context.Context, username, content string) error
+	List(ctx context.Context, limit, offset int) (repository.PostListResult, error)
 }
 
 type Handler struct {
@@ -44,7 +45,6 @@ type PageData struct {
 	PageSize    int
 }
 
-
 func (h *Handler) Forum(w http.ResponseWriter, r *http.Request) {
 	username := auth.CurrentUser(r)
 	if r.Method == http.MethodPost {
@@ -54,7 +54,7 @@ func (h *Handler) Forum(w http.ResponseWriter, r *http.Request) {
 		}
 		content := r.FormValue("content")
 		if content != "" {
-			if err := h.posts.Create(username, content); err != nil {
+			if err := h.posts.Create(r.Context(), username, content); err != nil {
 				http.Error(w, "can't create post", http.StatusInternalServerError)
 				return
 			}
@@ -74,7 +74,7 @@ func (h *Handler) Forum(w http.ResponseWriter, r *http.Request) {
 	}
 	offset := (page - 1) * pageSize
 
-	result, err := h.posts.List(pageSize, offset)
+	result, err := h.posts.List(r.Context(), pageSize, offset)
 	if err != nil {
 		http.Error(w, "can't load posts", http.StatusInternalServerError)
 		return
@@ -110,7 +110,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	username := r.FormValue("username")
 	password := r.FormValue("password")
 
-	hash, err := h.users.GetPasswordHash(username)
+	hash, err := h.users.GetPasswordHash(r.Context(), username)
 	if err != nil {
 		http.Error(w, "invalid username or password", http.StatusUnauthorized)
 		return
@@ -121,11 +121,11 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	auth.SetSession(w, username)
+	auth.SetSession(w, r, username)
 	http.Redirect(w, r, h.basePath+"/", http.StatusSeeOther)
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
-	auth.ClearSession(w)
+	auth.ClearSession(w, r)
 	http.Redirect(w, r, h.basePath+"/", http.StatusSeeOther)
 }

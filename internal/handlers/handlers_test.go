@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 	"html/template"
 	"net/http"
@@ -15,8 +16,8 @@ import (
 )
 
 type mockPostStore struct {
-	listRes repository.PostListResult
-	listErr error
+	listRes   repository.PostListResult
+	listErr   error
 	createErr error
 
 	gotLimit  int
@@ -24,12 +25,12 @@ type mockPostStore struct {
 	created   []string
 }
 
-func (m *mockPostStore) Create(username, content string) error {
+func (m *mockPostStore) Create(ctx context.Context, username, content string) error {
 	m.created = append(m.created, username+":"+content)
 	return m.createErr
 }
 
-func (m *mockPostStore) List(limit, offset int) (repository.PostListResult, error) {
+func (m *mockPostStore) List(ctx context.Context, limit, offset int) (repository.PostListResult, error) {
 	m.gotLimit, m.gotOffset = limit, offset
 	return m.listRes, m.listErr
 }
@@ -39,7 +40,7 @@ type mockUserStore struct {
 	err  error
 }
 
-func (m *mockUserStore) GetPasswordHash(username string) (string, error) {
+func (m *mockUserStore) GetPasswordHash(ctx context.Context, username string) (string, error) {
 	return m.hash, m.err
 }
 
@@ -178,9 +179,9 @@ func TestForumPost(t *testing.T) {
 			wantBody:   "auth required",
 		},
 		{
-			name:       "empty content",
-			loggedIn:   true,
-			wantStatus: http.StatusSeeOther,
+			name:         "empty content",
+			loggedIn:     true,
+			wantStatus:   http.StatusSeeOther,
 			wantLocation: "/",
 		},
 		{

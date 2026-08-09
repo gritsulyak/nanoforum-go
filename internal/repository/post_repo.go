@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 	"log"
 
@@ -11,8 +12,8 @@ type PostRepo struct{ db *sql.DB }
 
 func NewPostRepo(db *sql.DB) *PostRepo { return &PostRepo{db: db} }
 
-func (r *PostRepo) Create(username, content string) error {
-	_, err := r.db.Exec("INSERT INTO posts (username, content) VALUES (?, ?)", username, content)
+func (r *PostRepo) Create(ctx context.Context, username, content string) error {
+	_, err := r.db.ExecContext(ctx, "INSERT INTO posts (username, content) VALUES (?, ?)", username, content)
 	return err
 }
 
@@ -24,9 +25,9 @@ type PostListResult struct {
 
 // List retrieves posts with pagination.
 // We fetch limit + 1 to efficiently determine if a next page exists.
-func (r *PostRepo) List(limit, offset int) (PostListResult, error) {
+func (r *PostRepo) List(ctx context.Context, limit, offset int) (PostListResult, error) {
 	queryLimit := limit + 1
-	rows, err := r.db.Query("SELECT id, username, content, created_at FROM posts ORDER BY id DESC LIMIT ? OFFSET ?", queryLimit, offset)
+	rows, err := r.db.QueryContext(ctx, "SELECT id, username, content, created_at FROM posts ORDER BY id DESC LIMIT ? OFFSET ?", queryLimit, offset)
 	if err != nil {
 		return PostListResult{}, err
 	}

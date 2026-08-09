@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gritsulyak/nanoforum-go/internal/config"
 	"github.com/gritsulyak/nanoforum-go/internal/db"
@@ -39,6 +40,15 @@ func main() {
 		rootHandler = http.StripPrefix(basePath, mux)
 	}
 
+	srv := &http.Server{
+		Addr:              ":8080",
+		Handler:           rootHandler,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+
 	log.Printf("Forum run: http://localhost:8080%s", basePath)
-	log.Fatal(http.ListenAndServe(":8080", rootHandler))
+	log.Fatal(srv.ListenAndServe())
 }

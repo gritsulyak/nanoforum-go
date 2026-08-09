@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"crypto/tls"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -71,7 +72,8 @@ func TestCurrentUser(t *testing.T) {
 
 func TestSetSession(t *testing.T) {
 	rec := httptest.NewRecorder()
-	SetSession(rec, "alice")
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	SetSession(rec, req, "alice")
 
 	cookie := findSessionCookie(t, rec.Result().Cookies())
 	if cookie.Value != "alice" {
@@ -86,21 +88,52 @@ func TestSetSession(t *testing.T) {
 	if cookie.Path != "/" {
 		t.Errorf("cookie Path = %q, want %q", cookie.Path, "/")
 	}
+	if cookie.Secure {
+		t.Error("cookie Secure set over plain HTTP")
+	}
 	if !cookie.Expires.After(time.Now()) {
 		t.Error("cookie Expires not in the future")
 	}
 }
 
+func TestSetSessionTLS(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.TLS = &tls.ConnectionState{}
+	SetSession(rec, req, "alice")
+
+	cookie := findSessionCookie(t, rec.Result().Cookies())
+	if !cookie.Secure {
+		t.Error("cookie not Secure over TLS")
+	}
+}
+
 func TestClearSession(t *testing.T) {
 	rec := httptest.NewRecorder()
-	ClearSession(rec)
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	ClearSession(rec, req)
 
 	cookie := findSessionCookie(t, rec.Result().Cookies())
 	if cookie.Value != "" {
 		t.Errorf("cookie value = %q, want empty", cookie.Value)
 	}
+	if cookie.Secure {
+		t.Error("cookie Secure set over plain HTTP")
+	}
 	if !cookie.Expires.Before(time.Now()) {
 		t.Error("cookie Expires not in the past")
+	}
+}
+
+func TestClearSessionTLS(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.TLS = &tls.ConnectionState{}
+	ClearSession(rec, req)
+
+	cookie := findSessionCookie(t, rec.Result().Cookies())
+	if !cookie.Secure {
+		t.Error("cookie not Secure over TLS")
 	}
 }
 

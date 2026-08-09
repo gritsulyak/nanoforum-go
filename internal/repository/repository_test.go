@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"testing"
@@ -43,7 +44,7 @@ func TestPostRepoCreate(t *testing.T) {
 			tt.exec(mock)
 
 			r := NewPostRepo(db)
-			if err := r.Create("alice", "hello"); (err != nil) != tt.wantErr {
+			if err := r.Create(context.Background(), "alice", "hello"); (err != nil) != tt.wantErr {
 				t.Errorf("Create() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if err := mock.ExpectationsWereMet(); err != nil {
@@ -157,7 +158,7 @@ func TestPostRepoList(t *testing.T) {
 			tt.query(mock)
 
 			r := NewPostRepo(db)
-			got, err := r.List(tt.limit, tt.offset)
+			got, err := r.List(context.Background(), tt.limit, tt.offset)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("List() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -219,7 +220,7 @@ func TestUserRepoCreate(t *testing.T) {
 			tt.exec(mock)
 
 			r := NewUserRepo(db)
-			if err := r.Create("alice", "$2a$10$hash"); (err != nil) != tt.wantErr {
+			if err := r.Create(context.Background(), "alice", "$2a$10$hash"); (err != nil) != tt.wantErr {
 				t.Errorf("Create() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if err := mock.ExpectationsWereMet(); err != nil {
@@ -278,7 +279,7 @@ func TestUserRepoGetPasswordHash(t *testing.T) {
 			tt.query(mock)
 
 			r := NewUserRepo(db)
-			got, err := r.GetPasswordHash(tt.username)
+			got, err := r.GetPasswordHash(context.Background(), tt.username)
 			if tt.wantErr != "" {
 				if err == nil || err.Error() != tt.wantErr {
 					t.Errorf("GetPasswordHash() error = %v, want %q", err, tt.wantErr)

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -44,7 +45,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := users.Create(username, hash); err != nil {
+	if err := users.Create(context.Background(), username, hash); err != nil {
 		log.Fatalf("Error creating user (possibly username is taken): %v", err)
 	}
 
