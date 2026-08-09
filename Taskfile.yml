@@ -21,10 +21,11 @@ tasks:
       - go test ./...
 
   check:
-    desc: vet + lint
+    desc: vet + lint + test
     cmds:
       - task: vet
       - task: lint
+      - task: test
 
   docker-build:
     desc: Build Docker image for the forum
