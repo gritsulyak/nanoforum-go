@@ -3,8 +3,10 @@ package handlers
 import (
 	"context"
 	"html/template"
+	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gritsulyak/nanoforum-go/internal/auth"
 	"github.com/gritsulyak/nanoforum-go/internal/config"
@@ -26,10 +28,24 @@ type Handler struct {
 	posts    PostStore
 	tmpl     *template.Template
 	basePath string
+	debug    bool
 }
 
 func New(users UserStore, posts PostStore, tmpl *template.Template, basePath string) *Handler {
-	return &Handler{users: users, posts: posts, tmpl: tmpl, basePath: basePath}
+	return &Handler{
+		users:    users,
+		posts:    posts,
+		tmpl:     tmpl,
+		basePath: basePath,
+		debug:    config.Debug(),
+	}
+}
+
+// logTiming emits the duration of a handler stage when DEBUG is enabled.
+func (h *Handler) logTiming(stage string, start time.Time) {
+	if h.debug {
+		log.Printf("timing %s=%s", stage, time.Since(start))
+	}
 }
 
 type PageData struct {
@@ -74,7 +90,9 @@ func (h *Handler) Forum(w http.ResponseWriter, r *http.Request) {
 	}
 	offset := (page - 1) * pageSize
 
+	start := time.Now()
 	result, err := h.posts.List(r.Context(), pageSize, offset)
+	h.logTiming("forum.posts.List", start)
 	if err != nil {
 		http.Error(w, "can't load posts", http.StatusInternalServerError)
 		return
@@ -88,7 +106,8 @@ func (h *Handler) Forum(w http.ResponseWriter, r *http.Request) {
 	nextPage := page + 1
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_ = h.tmpl.Execute(w, PageData{
+	start = time.Now()
+	err = h.tmpl.Execute(w, PageData{
 		CurrentUser: username,
 		Posts:       result.Posts,
 		BasePath:    h.basePath,
@@ -99,6 +118,10 @@ func (h *Handler) Forum(w http.ResponseWriter, r *http.Request) {
 		NextPage:    nextPage,
 		PageSize:    pageSize,
 	})
+	h.logTiming("forum.tmpl.Execute", start)
+	if err != nil {
+		log.Printf("error executing template: %v", err)
+	}
 }
 
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
@@ -110,16 +133,21 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	username := r.FormValue("username")
 	password := r.FormValue("password")
 
+	start := time.Now()
 	hash, err := h.users.GetPasswordHash(r.Context(), username)
+	h.logTiming("login.GetPasswordHash", start)
 	if err != nil {
 		http.Error(w, "invalid username or password", http.StatusUnauthorized)
 		return
 	}
 
+	start = time.Now()
 	if err := auth.CheckPassword(hash, password); err != nil {
+		h.logTiming("login.CheckPassword", start)
 		http.Error(w, "invalid username or password", http.StatusUnauthorized)
 		return
 	}
+	h.logTiming("login.CheckPassword", start)
 
 	auth.SetSession(w, r, username)
 	http.Redirect(w, r, h.basePath+"/", http.StatusSeeOther)

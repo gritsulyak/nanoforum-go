@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"net/http/pprof"
 	"time"
 
 	"github.com/gritsulyak/nanoforum-go/internal/config"
@@ -34,6 +35,15 @@ func main() {
 	mux.HandleFunc("/", h.Forum)
 	mux.HandleFunc("/login", h.Login)
 	mux.HandleFunc("/logout", h.Logout)
+
+	if config.PprofEnabled() {
+		mux.HandleFunc("/debug/pprof/", pprof.Index)
+		mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+		mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+		mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+		mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+		log.Println("pprof endpoints enabled under /debug/pprof/")
+	}
 
 	var rootHandler http.Handler = mux
 	if basePath != "" {

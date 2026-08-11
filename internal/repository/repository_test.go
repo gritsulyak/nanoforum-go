@@ -136,6 +136,21 @@ func TestPostRepoList(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name:   "rows error after scan",
+			limit:  2,
+			offset: 0,
+			query: func(mock sqlmock.Sqlmock) {
+				rows := sqlmock.NewRows([]string{"id", "username", "content", "created_at"}).
+					AddRow(1, "alice", "a", now).
+					AddRow(2, "bob", "b", now).
+					RowError(1, errors.New("row boom"))
+				mock.ExpectQuery("SELECT id, username, content, created_at FROM posts").
+					WithArgs(3, 0).
+					WillReturnRows(rows)
+			},
+			wantErr: true,
+		},
+		{
 			name:   "empty result",
 			limit:  5,
 			offset: 0,
@@ -227,6 +242,156 @@ func TestUserRepoCreate(t *testing.T) {
 				t.Fatal(err)
 			}
 		})
+	}
+}
+
+func TestPostRepoListCached(t *testing.T) {	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = db.Close() }()
+
+	now := time.Now()
+	// Only one DB query is expected: the second List must hit the cache.
+	mock.ExpectQuery("SELECT id, username, content, created_at FROM posts").
+		WithArgs(3, 0).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "content", "created_at"}).
+			AddRow(1, "alice", "a", now).
+			AddRow(2, "bob", "b", now))
+
+	r := NewPostRepo(db)
+	for i := 0; i < 3; i++ {
+		got, err := r.List(context.Background(), 2, 0)
+		if err != nil {
+			t.Fatalf("List() #%d error = %v", i, err)
+		}
+		if len(got.Posts) != 2 {
+			t.Errorf("List() #%d returned %d posts, want 2", i, len(got.Posts))
+		}
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestPostRepoListCacheExpiry(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = db.Close() }()
+
+	now := time.Now()
+	rows := sqlmock.NewRows([]string{"id", "username", "content", "created_at"}).
+		AddRow(1, "alice", "a", now)
+
+	// Two queries: first populates the cache, the second follows TTL expiry.
+	mock.ExpectQuery("SELECT id, username, content, created_at FROM posts").
+		WithArgs(3, 0).
+		WillReturnRows(rows)
+	mock.ExpectQuery("SELECT id, username, content, created_at FROM posts").
+		WithArgs(3, 0).
+		WillReturnRows(rows)
+
+	r := NewPostRepo(db)
+	r.cache.ttl = 1 * time.Nanosecond
+
+	if _, err := r.List(context.Background(), 2, 0); err != nil {
+		t.Fatalf("first List() error = %v", err)
+	}
+	if _, err := r.List(context.Background(), 2, 0); err != nil {
+		t.Fatalf("second List() error = %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestPostRepoCreateInvalidatesCache(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = db.Close() }()
+
+	now := time.Now()
+	// First List populates the cache, then Create invalidates it,
+	// so the second List must query the DB again.
+	mock.ExpectQuery("SELECT id, username, content, created_at FROM posts").
+		WithArgs(3, 0).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "content", "created_at"}).
+			AddRow(1, "alice", "a", now))
+	mock.ExpectExec("INSERT INTO posts").
+		WithArgs("alice", "hello").
+		WillReturnResult(sqlmock.NewResult(2, 1))
+	mock.ExpectQuery("SELECT id, username, content, created_at FROM posts").
+		WithArgs(3, 0).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "content", "created_at"}).
+			AddRow(2, "alice", "hello", now))
+
+	r := NewPostRepo(db)
+	if _, err := r.List(context.Background(), 2, 0); err != nil {
+		t.Fatalf("first List() error = %v", err)
+	}
+	if err := r.Create(context.Background(), "alice", "hello"); err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+	got, err := r.List(context.Background(), 2, 0)
+	if err != nil {
+		t.Fatalf("second List() error = %v", err)
+	}
+	if len(got.Posts) != 1 || got.Posts[0].Content != "hello" {
+		t.Errorf("List() after Create = %+v, want fresh post hello", got.Posts)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestPostRepoCreateErrorKeepsCache(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = db.Close() }()
+
+	now := time.Now()
+	// First List populates the cache; the failing Create must NOT clear it,
+	// so the second List still hits the cache (no extra query expected).
+	mock.ExpectQuery("SELECT id, username, content, created_at FROM posts").
+		WithArgs(3, 0).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "content", "created_at"}).
+			AddRow(1, "alice", "a", now))
+	mock.ExpectExec("INSERT INTO posts").
+		WithArgs("alice", "hello").
+		WillReturnError(errors.New("boom"))
+
+	r := NewPostRepo(db)
+	if _, err := r.List(context.Background(), 2, 0); err != nil {
+		t.Fatalf("first List() error = %v", err)
+	}
+	if err := r.Create(context.Background(), "alice", "hello"); err == nil {
+		t.Fatal("Create() error = nil, want error")
+	}
+	got, err := r.List(context.Background(), 2, 0)
+	if err != nil {
+		t.Fatalf("second List() error = %v", err)
+	}
+	if len(got.Posts) != 1 || got.Posts[0].Content != "a" {
+		t.Errorf("List() after failed Create = %+v, want cached post a", got.Posts)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestPostsCacheKeyDistinct(t *testing.T) {
+	c := newPostsCache(time.Second)
+	if c.key(10, 0) == c.key(10, 10) {
+		t.Errorf("keys for different offsets must differ: %q vs %q", c.key(10, 0), c.key(10, 10))
+	}
+	if c.key(10, 0) == c.key(20, 0) {
+		t.Errorf("keys for different limits must differ: %q vs %q", c.key(10, 0), c.key(20, 0))
 	}
 }
 

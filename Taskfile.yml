@@ -78,3 +78,33 @@ tasks:
     desc: Остановить прод-версию
     cmds:
       - docker compose -f docker/docker-compose-prod.yml down
+
+  k6-setup:
+    desc: Create the load-test user (loadtest/loadtest)
+    cmds:
+      - bash k6/setup.sh
+
+  k6-load-login:
+    desc: Run k6 login load tests (default RPS 100 5000 10000 20000)
+    cmds:
+      - bash k6/run-load.sh "login"
+
+  k6-load-posts:
+    desc: Run k6 posts display load tests (default RPS 100 5000 10000 20000)
+    cmds:
+      - bash k6/run-load.sh "posts"
+
+  k6-load-post-create:
+    desc: Run k6 post creation load tests (default RPS 100 5000 10000 20000)
+    cmds:
+      - bash k6/run-load.sh "post-create"
+
+  k6-load:
+    desc: Run all k6 load tests (login, posts display, post creation)
+    cmds:
+      - bash k6/run-load.sh
+
+  k6-profile:
+    desc: Run k6 load + capture pprof profiles (needs PPROF=1 server)
+    cmds:
+      - bash k6/profile.sh

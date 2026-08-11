@@ -14,7 +14,8 @@ services:
     environment:
       - DB_PATH=/app/data/forum.db
       - BASE_PATH=/forum
-      - PAGE_SIZE=15 
+      - PAGE_SIZE=15
+      - POSTS_CACHE_TTL=5s
 
   createuser:
     build:

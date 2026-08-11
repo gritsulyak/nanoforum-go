@@ -4,3 +4,6 @@
 *.db
 *.db-journal
 .env
+/k6/results/*.json
+!/k6/results/*-summary.json
+/k6/profiles/

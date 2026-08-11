@@ -4,6 +4,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const defaultDBPath = "./forum.db"
@@ -46,4 +47,41 @@ func PageSize() int {
 		return 10 // Fallback to default if invalid
 	}
 	return size
+}
+
+// PprofEnabled reports whether the /debug/pprof profiling endpoint
+// should be exposed. Controlled by the PPROF environment variable.
+func PprofEnabled() bool {
+	return envBool("PPROF")
+}
+
+// PostsCacheTTL returns the TTL for the posts list cache,
+// read from the POSTS_CACHE_TTL environment variable (Go duration),
+// defaulting to 1 second.
+func PostsCacheTTL() time.Duration {
+	if v, ok := os.LookupEnv("POSTS_CACHE_TTL"); ok && v != "" {
+		if d, err := time.ParseDuration(v); err == nil && d > 0 {
+			return d
+		}
+	}
+	return time.Second
+}
+
+// Debug reports whether per-request latency breakdown logging
+// is enabled. Controlled by the DEBUG environment variable.
+func Debug() bool {
+	return envBool("DEBUG")
+}
+
+func envBool(key string) bool {
+	v, ok := os.LookupEnv(key)
+	if !ok {
+		return false
+	}
+	switch strings.ToLower(strings.TrimSpace(v)) {
+	case "1", "true", "yes", "on":
+		return true
+	default:
+		return false
+	}
 }

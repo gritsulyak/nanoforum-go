@@ -46,7 +46,43 @@ func (m *mockUserStore) GetPasswordHash(ctx context.Context, username string) (s
 
 func newTestHandler(posts *mockPostStore, users *mockUserStore, basePath string) *Handler {
 	tmpl := template.Must(template.New("index").Parse(`<html>{{.CurrentUser}}{{range .Posts}}@{{.Username}}{{end}}</html>`))
-	return New(users, posts, tmpl, basePath)
+	h := New(users, posts, tmpl, basePath)
+	h.debug = false
+	return h
+}
+
+func newDebugHandler(posts *mockPostStore, users *mockUserStore, basePath string) *Handler {
+	h := newTestHandler(posts, users, basePath)
+	h.debug = true
+	return h
+}
+
+func TestForumGetDebugTiming(t *testing.T) {
+	posts := &mockPostStore{
+		listRes: repository.PostListResult{Posts: []models.Post{{ID: 1, Username: "alice", Content: "hello"}}},
+	}
+	h := newDebugHandler(posts, &mockUserStore{}, "")
+	rec := doRequest(t, h, http.MethodGet, "/", nil, false)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if !strings.Contains(rec.Body.String(), "@alice") {
+		t.Errorf("body = %q, want it to contain @alice", rec.Body.String())
+	}
+}
+
+func TestForumGetTemplateError(t *testing.T) {
+	tmpl := template.Must(template.New("index").Parse(`{{.NoSuchField}}`))
+	posts := &mockPostStore{
+		listRes: repository.PostListResult{Posts: []models.Post{{ID: 1, Username: "alice"}}},
+	}
+	h := &Handler{users: &mockUserStore{}, posts: posts, tmpl: tmpl, basePath: ""}
+	rec := doRequest(t, h, http.MethodGet, "/", nil, false)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d (template error must not break the handler)", rec.Code, http.StatusOK)
+	}
 }
 
 func doRequest(t *testing.T, h *Handler, method, target string, form url.Values, loggedIn bool) *httptest.ResponseRecorder {
